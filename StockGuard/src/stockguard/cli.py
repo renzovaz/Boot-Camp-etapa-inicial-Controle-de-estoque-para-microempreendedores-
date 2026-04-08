@@ -10,9 +10,9 @@ import sys
 from pathlib import Path
 
 from stockguard.inventory import (
+    InvalidQuantityError,
     Inventory,
     InventoryError,
-    InvalidQuantityError,
     ProductNotFoundError,
 )
 from stockguard.storage import Storage

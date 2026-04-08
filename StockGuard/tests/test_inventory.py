@@ -6,12 +6,11 @@ Cobre caminho feliz, entradas inválidas e casos limite.
 import pytest
 
 from stockguard.inventory import (
-    Inventory,
     InsufficientStockError,
     InvalidQuantityError,
+    Inventory,
     ProductNotFoundError,
 )
-
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 

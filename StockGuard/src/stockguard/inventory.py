@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -34,7 +33,7 @@ class Product:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Product":
+    def from_dict(cls, data: dict) -> Product:
         return cls(
             name=data["name"],
             quantity=data["quantity"],
@@ -65,7 +64,7 @@ class InvalidQuantityError(InventoryError):
 class Inventory:
     """Gerencia o inventário de produtos."""
 
-    def __init__(self, products: Optional[dict[str, Product]] = None) -> None:
+    def __init__(self, products: dict[str, Product] | None = None) -> None:
         self._products: dict[str, Product] = products or {}
 
     def _normalize_name(self, name: str) -> str:
@@ -172,6 +171,6 @@ class Inventory:
         return {k: v.to_dict() for k, v in self._products.items()}
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Inventory":
+    def from_dict(cls, data: dict) -> Inventory:
         products = {k: Product.from_dict(v) for k, v in data.items()}
         return cls(products=products)
