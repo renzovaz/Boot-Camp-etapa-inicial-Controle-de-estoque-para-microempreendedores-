@@ -174,3 +174,4 @@ class Inventory:
     def from_dict(cls, data: dict) -> Inventory:
         products = {k: Product.from_dict(v) for k, v in data.items()}
         return cls(products=products)
+    
