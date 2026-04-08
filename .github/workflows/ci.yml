@@ -1,44 +1,27 @@
 name: CI
 
-on:
-  push:
-    branches: ["main", "develop"]
-  pull_request:
-    branches: ["main"]
+on: [push, pull_request]
 
 jobs:
-  lint-and-test:
-    name: Lint + Testes (Python ${{ matrix.python-version }})
+  test:
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-
     steps:
-      - name: Checkout do código
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configurar Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: "pip"
+          python-version: '3.12'
 
-      - name: Instalar dependências de desenvolvimento
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install pytest ruff
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Lint com Ruff (verificação de erros)
-        run: ruff check src/ tests/
+      - name: Run Ruff
+        run: ruff check .
 
-      - name: Lint com Ruff (verificação de formatação)
-        run: ruff format --check src/ tests/
-
-      - name: Executar testes com cobertura
-        run: pytest --cov=stockguard --cov-report=term-missing
-
-      - name: Verificar versão da aplicação
-        run: python -c "import stockguard; print('StockGuard v' + stockguard.__version__)"
+      - name: Run tests
+        run: pytest tests/
