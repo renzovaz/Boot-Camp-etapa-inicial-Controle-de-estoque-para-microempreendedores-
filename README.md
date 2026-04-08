@@ -51,7 +51,7 @@ Microempreendedores individuais (MEI) e pequenos negócios que precisam de contr
  
 ### Pré-requisitos
  
-- Python 3.10 ou superior
+- Python 3.9 ou superior
 - pip
  
 ### Instalar a partir do repositório
