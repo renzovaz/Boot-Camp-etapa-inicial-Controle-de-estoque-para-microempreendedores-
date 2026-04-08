@@ -9,13 +9,13 @@ import argparse
 import sys
 from pathlib import Path
 
-from stockguard.inventory import (
+from src.stockguard.inventory import (
     InvalidQuantityError,
     Inventory,
     InventoryError,
     ProductNotFoundError,
 )
-from stockguard.storage import Storage
+from src.stockguard.storage import Storage
 
 _RESET = "\033[0m"
 _BOLD = "\033[1m"

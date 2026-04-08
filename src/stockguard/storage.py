@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from stockguard.inventory import Inventory
+from src.stockguard.inventory import Inventory
 
 DEFAULT_DATA_FILE = Path.home() / ".stockguard" / "inventory.json"
 
