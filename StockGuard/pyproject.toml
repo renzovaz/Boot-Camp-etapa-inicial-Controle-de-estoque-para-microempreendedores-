@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "stockguard"
+version = "1.0.0"
+description = "Controle de estoque para microempreendedores — automatiza baixas e alertas de estoque mínimo."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "Seu Nome Aqui", email = "seuemail@exemplo.com" }]
+keywords = ["estoque", "inventário", "microempreendedor", "cli"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+stockguard = "stockguard.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/SEU_USUARIO/stockguard"
+Repository = "https://github.com/SEU_USUARIO/stockguard"
+Issues = "https://github.com/SEU_USUARIO/stockguard/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# ─── Ruff (linting + formatação) ──────────────────────────────────────────────
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+]
+ignore = ["E501"]  # line-too-long tratado pelo formatter
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG"]
+
+# ─── Pytest ───────────────────────────────────────────────────────────────────
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["src/stockguard"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true

@@ -1,2 +1,0 @@
-# Boot-Camp-etapa-inicial-Controle-de-estoque-para-microempreendedores-
-O StockGuard otimiza o controle de estoque unindo arquitetura leve e processamento em nuvem para garantir integridade dos dados. Ele automatiza baixas em tempo real e executa gatilhos de estoque mínimo. É a escolha definitiva por entregar métricas exatas de giro de mercadorias e escalabilidade técnica, reduzindo perdas e blindando o fluxo de caixa.
