@@ -3,7 +3,7 @@
 Cobre caminho feliz, entradas inválidas e casos limite.
 """
 
-import StockGuad.tests.test_inventory as test_inventory 
+import tests.test_inventory as test_inventory 
 
 from stockguard.inventory import (
     InsufficientStockError,
