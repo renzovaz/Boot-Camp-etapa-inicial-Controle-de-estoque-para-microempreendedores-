@@ -3,7 +3,7 @@
 Cobre caminho feliz, entradas inválidas e casos limite.
 """
 
-import pytest 
+import StockGuad.tests.test_inventory as test_inventory 
 
 from stockguard.inventory import (
     InsufficientStockError,
@@ -15,13 +15,13 @@ from stockguard.inventory import (
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 
 
-@pytest.fixture()
+@test_inventory.fixture()
 def inv() -> Inventory:
     """Inventário vazio para cada teste."""
     return Inventory()
 
 
-@pytest.fixture()
+@test_inventory.fixture()
 def inv_with_products() -> Inventory:
     """Inventário com produtos pré-cadastrados."""
     inventory = Inventory()
@@ -58,17 +58,17 @@ class TestAddProduct:
 
     def test_add_product_negative_quantity_raises(self, inv: Inventory) -> None:
         """Quantidade negativa deve lançar InvalidQuantityError."""
-        with pytest.raises(InvalidQuantityError, match="negativa"):
+        with test_inventory.raises(InvalidQuantityError, match="negativa"):
             inv.add_product("Caneta", quantity=-5, min_stock=10, unit_price=2.50)
 
     def test_add_product_negative_price_raises(self, inv: Inventory) -> None:
         """Preço negativo deve lançar InvalidQuantityError."""
-        with pytest.raises(InvalidQuantityError, match="negativo"):
+        with test_inventory.raises(InvalidQuantityError, match="negativo"):
             inv.add_product("Caneta", quantity=10, min_stock=5, unit_price=-1.00)
 
     def test_add_product_empty_name_raises(self, inv: Inventory) -> None:
         """Nome vazio deve lançar ValueError."""
-        with pytest.raises(ValueError):
+        with test_inventory.raises(ValueError):
             inv.add_product("   ", quantity=10, min_stock=5, unit_price=1.00)
 
     def test_add_product_zero_quantity_allowed(self, inv: Inventory) -> None:
@@ -96,22 +96,22 @@ class TestSellProduct:
 
     def test_sell_product_not_found_raises(self, inv: Inventory) -> None:
         """Produto inexistente deve lançar ProductNotFoundError."""
-        with pytest.raises(ProductNotFoundError, match="não encontrado"):
+        with test_inventory.raises(ProductNotFoundError, match="não encontrado"):
             inv.sell_product("Produto Fantasma", quantity=1)
 
     def test_sell_insufficient_stock_raises(self, inv_with_products: Inventory) -> None:
         """Venda maior que estoque deve lançar InsufficientStockError."""
-        with pytest.raises(InsufficientStockError, match="insuficiente"):
+        with test_inventory.raises(InsufficientStockError, match="insuficiente"):
             inv_with_products.sell_product("Caneta Azul", quantity=9999)
 
     def test_sell_zero_quantity_raises(self, inv_with_products: Inventory) -> None:
         """Venda de zero unidades deve lançar InvalidQuantityError."""
-        with pytest.raises(InvalidQuantityError, match="maior que zero"):
+        with test_inventory.raises(InvalidQuantityError, match="maior que zero"):
             inv_with_products.sell_product("Caneta Azul", quantity=0)
 
     def test_sell_negative_quantity_raises(self, inv_with_products: Inventory) -> None:
         """Venda negativa deve lançar InvalidQuantityError."""
-        with pytest.raises(InvalidQuantityError):
+        with test_inventory.raises(InvalidQuantityError):
             inv_with_products.sell_product("Caneta Azul", quantity=-3)
 
     def test_sell_exact_stock_reduces_to_zero(self, inv: Inventory) -> None:
@@ -149,7 +149,7 @@ class TestAlertsAndReport:
         inv.add_product("Item", quantity=100, min_stock=5, unit_price=10.00)
         inv.sell_product("Item", quantity=7)
         report = inv.turnover_report()
-        assert report[0]["total_value_sold"] == pytest.approx(70.00)
+        assert report[0]["total_value_sold"] == test_inventory.approx(70.00)
 
 
 # ─── Testes: serialização ────────────────────────────────────────────────────
