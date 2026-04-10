@@ -58,8 +58,8 @@ Microempreendedores individuais (MEI) e pequenos negócios que precisam de contr
  
 ```bash
 # Clone o repositório
-git clone https://github.com/SEU_USUARIO/stockguard.git
-cd stockguard
+git clone https://github.com/renzovaz/Boot-Camp-etapa-inicial-Controle-de-estoque-para-microempreendedores-
+cd cd Boot-Camp-etapa-inicial-Controle-de-estoque-para-microempreendedores-
  
 # Instale em modo editável (desenvolvimento)
 pip install -e ".[dev]"
@@ -188,22 +188,28 @@ Compatível com Python 3.10, 3.11 e 3.12.
 ## Estrutura do projeto
  
 ```
-stockguard/
-├── src/
-│   └── stockguard/
-│       ├── __init__.py      # versão do pacote
-│       ├── cli.py           # interface de linha de comando
-│       ├── inventory.py     # lógica de negócio
-│       └── storage.py       # persistência em JSON
-├── tests/
-│   ├── __init__.py
-│   └── test_inventory.py    # testes automatizados
+BOOT-CAMP-ETAPA-INICIAL-... (Raiz do Repo)
 ├── .github/
 │   └── workflows/
-│       └── ci.yml           # pipeline de CI
-├── pyproject.toml           # manifesto, versão e configurações
+│       └── ci.yml
+├── src/
+│   └── stockguard/
+│       ├── __init__.py
+│       ├── cli.py
+│       ├── inventory.py
+│       └── storage.py
+├── StockGuard/            # Pasta interna do projeto
+│   ├── .pytest_cache/
+│   ├── .ruff_cache/
+│   └── stockguard.egg-info/
+├── tests/
+│   ├── __init__.py
+│   └── test_inventory.py
+├── venv/                  # Seu ambiente virtual
+├── .gitignore
 ├── CHANGELOG.md
 ├── LICENSE
+├── pyproject.toml
 └── README.md
 ```
  
@@ -217,9 +223,9 @@ stockguard/
  
 ## Autor
  
-Seu Nome Aqui — [seuemail@exemplo.com](mailto:seuemail@exemplo.com)
+Renzo Machado Alves Vaz — [eusourenzo@gmail.com](mailto:eusourenzo@gmail.com)
  
-Repositório: [https://github.com/SEU_USUARIO/stockguard](https://github.com/SEU_USUARIO/stockguard)
+Repositório: [https://github.com/renzovaz/Boot-Camp-etapa-inicial-Controle-de-estoque-para-microempreendedores-](https://github.com/renzovaz/Boot-Camp-etapa-inicial-Controle-de-estoque-para-microempreendedores-)
  
 ---
  
