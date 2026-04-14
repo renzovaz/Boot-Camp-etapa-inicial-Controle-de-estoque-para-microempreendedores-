@@ -19,8 +19,8 @@ from stockguard.inventory import (
 )
 from stockguard.storage import Storage
 
-
 # ─── Cores / helpers ─────────────────────────────────────────────────────────
+
 
 def _ok(msg: str) -> None:
     click.echo(click.style("✔", fg="green") + f"  {msg}")
@@ -40,6 +40,7 @@ def _header(title: str) -> None:
 
 
 # ─── Contexto compartilhado ──────────────────────────────────────────────────
+
 
 class AppContext:
     """Carrega e expõe Inventory + Storage para todos os sub-comandos."""
@@ -65,6 +66,7 @@ pass_ctx = click.make_pass_decorator(AppContext)
 
 # ─── Grupo principal ─────────────────────────────────────────────────────────
 
+
 @click.group(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
@@ -89,13 +91,21 @@ def cli(ctx: click.Context, data: Path | None) -> None:
 
 # ─── Comandos ────────────────────────────────────────────────────────────────
 
+
 @cli.command("add")
 @click.argument("nome")
 @click.argument("quantidade", type=int)
-@click.option("--min-stock", "-m", default=5, show_default=True, metavar="MIN",
-              help="Estoque mínimo para alerta.")
-@click.option("--price", "-p", default=0.0, show_default=True, metavar="PRECO",
-              help="Preço unitário em R$.")
+@click.option(
+    "--min-stock",
+    "-m",
+    default=5,
+    show_default=True,
+    metavar="MIN",
+    help="Estoque mínimo para alerta.",
+)
+@click.option(
+    "--price", "-p", default=0.0, show_default=True, metavar="PRECO", help="Preço unitário em R$."
+)
 @pass_ctx
 def cmd_add(app: AppContext, nome: str, quantidade: int, min_stock: int, price: float) -> None:
     """Cadastra ou repõe produto no estoque.
