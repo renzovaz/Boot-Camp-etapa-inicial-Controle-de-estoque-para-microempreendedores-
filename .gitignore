@@ -36,6 +36,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Pastas locais do projeto
+StockGuard/
+
 # StockGuard data (não versionar dados do usuário)
 *.json
 !tests/**/*.json
