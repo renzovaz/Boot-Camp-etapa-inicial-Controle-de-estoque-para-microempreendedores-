@@ -6,7 +6,7 @@ import os
 import tempfile
 from unittest.mock import MagicMock, patch
 
-import pytest
+import pytest   
 
 from stockguard.suppliers import (
     APIConnectionError,

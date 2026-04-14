@@ -214,7 +214,59 @@ BOOT-CAMP-ETAPA-INICIAL-... (Raiz do Repo)
 ├── pyproject.toml
 └── README.md
 ```
- 
+ 🌐 Deploy — Aplicação Online
+
+Link da aplicação: https://stockguard.onrender.com
+(Substitua pela URL gerada pelo Render após o deploy)
+
+A API REST do StockGuard está publicada no Render e acessível publicamente.
+Documentação interativa disponível em: https://stockguard.onrender.com/docs
+
+🔗 Integração com ViaCEP (Novo — v1.1.0)
+O StockGuard agora permite cadastrar fornecedores com endereço preenchido automaticamente via CEP, consumindo a API pública ViaCEP.
+Novo comando CLI
+bash# Cadastrar fornecedor (endereço preenchido automaticamente pelo CEP)
+stockguard supplier add "Papelaria Central" 01310-100
+# 🔍 Consultando endereço para o CEP 01310-100...
+# ✔  Fornecedor 'Papelaria Central' cadastrado.
+#    Endereço: Avenida Paulista — Bela Vista — São Paulo/SP — CEP 01310-100
+
+# Com contato
+stockguard supplier add "Distribuidora XYZ" 20040-020 --contato "(21) 9999-0000"
+
+# Listar fornecedores
+stockguard supplier list
+Endpoints REST (Deploy)
+MétodoRotaDescriçãoGET/Health checkGET/inventoryLista produtos em estoqueGET/inventory/alertsAlertas de estoque mínimoGET/inventory/reportRelatório de giro financeiroGET/suppliersLista fornecedoresPOST/suppliersCadastra fornecedor via CEP
+Exemplo de uso da API
+bash# Cadastrar fornecedor via API REST
+curl -X POST https://stockguard.onrender.com/suppliers \
+  -H "Content-Type: application/json" \
+  -d '{"nome": "Papelaria Central", "cep": "01310-100", "contato": "(11) 9999-0000"}'
+
+# Listar fornecedores
+curl https://stockguard.onrender.com/suppliers
+
+🧪 Rodando os Testes de Integração
+bash# Testes unitários normais (sem rede — sempre funcionam)
+pytest
+
+# Testes de integração REAL com a API ViaCEP (requer internet)
+pytest -m integration tests/test_suppliers_integration.py -v
+
+⚙️ Deploy no Render (passo a passo)
+
+Acesse render.com e crie uma conta gratuita
+Clique em New → Web Service
+Conecte seu repositório GitHub
+Configure:
+
+Build Command: pip install -e ".[web]"
+Start Command: uvicorn web_app:app --host 0.0.0.0 --port $PORT
+
+
+Clique em Deploy — o Render gera o link público automaticamente
+Cole o link no topo do README
 ---
  
 ## Versão atual
