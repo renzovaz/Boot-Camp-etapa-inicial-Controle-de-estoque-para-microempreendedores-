@@ -10,6 +10,7 @@ from pathlib import Path
 
 import click
 
+from stockguard.cli_suppliers import supplier
 from stockguard.inventory import (
     InvalidQuantityError,
     Inventory,
@@ -17,6 +18,7 @@ from stockguard.inventory import (
     ProductNotFoundError,
 )
 from stockguard.storage import Storage
+
 
 # ─── Cores / helpers ─────────────────────────────────────────────────────────
 
@@ -249,9 +251,8 @@ def cmd_remove(app: AppContext, nome: str) -> None:
     _ok(f"Produto '{product.name}' removido do inventário.")
 
 
-# ─── Integração com sub-grupo de fornecedores ─────────────────────────────────
+# ─── Sub-grupo de fornecedores ────────────────────────────────────────────────
 
-from stockguard.cli_suppliers import supplier  # noqa: E402
 cli.add_command(supplier)
 
 
