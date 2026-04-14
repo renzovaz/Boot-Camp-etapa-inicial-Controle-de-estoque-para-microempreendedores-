@@ -1,33 +1,8 @@
-"""
-web_app.py — Interface web do StockGuard para deploy no Render.
-
-Expõe os dados do StockGuard via uma API REST simples (FastAPI),
-permitindo acesso público ao inventário e aos fornecedores por link.
-
-Endpoints:
-  GET  /                    — Health check / info do sistema
-  GET  /inventory           — Lista todos os produtos em estoque
-  GET  /inventory/alerts    — Produtos abaixo do estoque mínimo
-  GET  /inventory/report    — Relatório de giro (valor financeiro)
-  GET  /suppliers           — Lista todos os fornecedores cadastrados
-  POST /suppliers           — Cadastra fornecedor com busca de CEP (ViaCEP)
-"""
-
-from __future__ import annotations
-
 import os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
-try:
-    from fastapi import FastAPI, HTTPException
-    from fastapi.responses import JSONResponse
-    from pydantic import BaseModel
-except ImportError as exc:
-    raise ImportError(
-        "FastAPI não instalado. Execute: pip install fastapi uvicorn"
-    ) from exc
-
-from stockguard.inventory import Inventory
-from stockguard.storage import JSONStorage
+from stockguard.storage import Storage
 from stockguard.suppliers import (
     adicionar_fornecedor,
     listar_fornecedores,
@@ -38,101 +13,60 @@ from stockguard.suppliers import (
 
 app = FastAPI(
     title="StockGuard API",
-    description="Controle de estoque para microempreendedores — StockGuard",
+    description="API do controle de estoque para a entrega intermediária",
     version="1.1.0",
 )
 
-# ─── Instância do inventário ─────────────────────────────────────────────────
-
-_DATA_FILE = os.environ.get(
-    "STOCKGUARD_DATA",
-    os.path.join(os.path.expanduser("~"), ".stockguard", "inventory.json"),
-)
-_SUPPLIERS_FILE = os.environ.get(
-    "STOCKGUARD_SUPPLIERS",
-    os.path.join(os.path.expanduser("~"), ".stockguard", "suppliers.json"),
+arquivo_dados = os.environ.get("STOCKGUARD_DATA")
+arquivo_fornecedores = os.environ.get(
+    "STOCKGUARD_SUPPLIERS", 
+    os.path.join(os.path.expanduser("~"), ".stockguard", "suppliers.json")
 )
 
-storage = JSONStorage(_DATA_FILE)
-inventory = Inventory(storage)
+storage = Storage(filepath=arquivo_dados) if arquivo_dados else Storage()
+inv = storage.load()
 
-
-# ─── Modelos Pydantic ────────────────────────────────────────────────────────
-
-class SupplierIn(BaseModel):
+class FornecedorEntrada(BaseModel):
     nome: str
     cep: str
     contato: str = ""
 
+@app.get("/")
+def home():
+    return {"status": "online", "projeto": "StockGuard", "docs": "/docs"}
 
-# ─── Rotas ───────────────────────────────────────────────────────────────────
-
-@app.get("/", tags=["Sistema"])
-def root():
-    """Health check e informações básicas do sistema."""
-    return {
-        "app": "StockGuard",
-        "version": "1.1.0",
-        "status": "online",
-        "docs": "/docs",
-    }
-
-
-@app.get("/inventory", tags=["Estoque"])
-def get_inventory():
-    """Lista todos os produtos em estoque."""
-    produtos = inventory.list_products()
+@app.get("/inventory")
+def listar_estoque():
+    produtos = [
+        {"nome": p.name, "quantidade": p.quantity, "minimo": p.min_stock, "preco": p.unit_price}
+        for p in inv.list_products()
+    ]
     return {"total": len(produtos), "produtos": produtos}
 
-
-@app.get("/inventory/alerts", tags=["Estoque"])
-def get_alerts():
-    """Retorna produtos com estoque abaixo do mínimo configurado."""
-    todos = inventory.list_products()
-    alertas = [p for p in todos if p["quantity"] < p.get("min_stock", 0)]
+@app.get("/inventory/alerts")
+def alertas_estoque():
+    alertas = [
+        {"nome": p.name, "quantidade": p.quantity, "minimo": p.min_stock}
+        for p in inv.low_stock_alerts()
+    ]
     return {"total_alertas": len(alertas), "alertas": alertas}
 
+@app.get("/inventory/report")
+def relatorio_giro():
+    return {"relatorio": inv.turnover_report()}
 
-@app.get("/inventory/report", tags=["Estoque"])
-def get_report():
-    """Relatório de giro de mercadorias com valor financeiro."""
-    produtos = inventory.list_products()
-    relatorio = [
-        {
-            "produto": p["name"],
-            "vendidos": p.get("sold", 0),
-            "valor_vendido": round(p.get("sold", 0) * p.get("price", 0), 2),
-            "estoque_atual": p["quantity"],
-            "valor_estoque": round(p["quantity"] * p.get("price", 0), 2),
-        }
-        for p in produtos
-    ]
-    valor_total = sum(r["valor_estoque"] for r in relatorio)
-    return {
-        "valor_total_estoque": round(valor_total, 2),
-        "produtos": relatorio,
-    }
-
-
-@app.get("/suppliers", tags=["Fornecedores"])
-def get_suppliers():
-    """Lista todos os fornecedores cadastrados."""
-    fornecedores = listar_fornecedores(_SUPPLIERS_FILE)
+@app.get("/suppliers")
+def listar_fornecs():
+    fornecedores = listar_fornecedores(arquivo_fornecedores)
     return {"total": len(fornecedores), "fornecedores": fornecedores}
 
-
-@app.post("/suppliers", tags=["Fornecedores"], status_code=201)
-def create_supplier(body: SupplierIn):
-    """
-    Cadastra um fornecedor com busca automática de endereço via ViaCEP.
-
-    O campo `cep` pode ser informado com ou sem traço (ex: 01310-100 ou 01310100).
-    """
+@app.post("/suppliers", status_code=201)
+def criar_fornecedor(dados: FornecedorEntrada):
     try:
         fornecedor = adicionar_fornecedor(
-            body.nome, body.cep, contato=body.contato, caminho=_SUPPLIERS_FILE
+            dados.nome, dados.cep, contato=dados.contato, caminho=arquivo_fornecedores
         )
-        return {"mensagem": "Fornecedor cadastrado com sucesso.", "fornecedor": fornecedor}
+        return {"mensagem": "salvo com sucesso", "fornecedor": fornecedor}
     except CEPInvalidError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except CEPNotFoundError as e:

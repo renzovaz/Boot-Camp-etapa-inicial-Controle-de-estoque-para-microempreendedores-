@@ -2,25 +2,22 @@
 test_suppliers_integration.py — Testes de integração do módulo de fornecedores.
 """
 
-import json
 import os
 import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from stockguard.suppliers import (
-    buscar_endereco,
-    adicionar_fornecedor,
-    listar_fornecedores,
-    formatar_endereco,
-    CEPNotFoundError,
-    CEPInvalidError,
     APIConnectionError,
+    CEPInvalidError,
+    CEPNotFoundError,
     _limpar_cep,
+    adicionar_fornecedor,
+    buscar_endereco,
+    formatar_endereco,
+    listar_fornecedores,
 )
-
-# ─── Fixtures ────────────────────────────────────────────────────────────────
 
 RESPOSTA_VIACEP_VALIDA = {
     "cep": "01310-100",
@@ -39,40 +36,41 @@ RESPOSTA_CEP_NAO_ENCONTRADO = {"erro": True}
 
 
 def _mock_requests_get(payload: dict, status: int = 200):
-    """Cria um mock do requests.get que retorna payload como JSON."""
     mock_response = MagicMock()
     mock_response.json.return_value = payload
     mock_response.status_code = status
+    mock_response.raise_for_status = MagicMock()
     return mock_response
 
-
-# ─── Testes de validação de CEP (sem rede) ───────────────────────────────────
 
 def test_limpar_cep_com_traco():
     assert _limpar_cep("01310-100") == "01310100"
 
+
 def test_limpar_cep_sem_traco():
     assert _limpar_cep("01310100") == "01310100"
 
+
 def test_limpar_cep_com_espacos():
     assert _limpar_cep("  01310 100  ") == "01310100"
+
 
 def test_cep_invalido_letras():
     with pytest.raises(CEPInvalidError, match="inválido"):
         _limpar_cep("ABCDE-FGH")
 
+
 def test_cep_invalido_curto():
     with pytest.raises(CEPInvalidError):
         _limpar_cep("1234567")
+
 
 def test_cep_invalido_longo():
     with pytest.raises(CEPInvalidError):
         _limpar_cep("123456789")
 
 
-# ─── Testes de buscar_endereco (mock da API) ──────────────────────────────────
-
-@patch("stockguard.suppliers.requests.get")
+@patch("requests.get")
 def test_buscar_endereco_retorna_campos_corretos(mock_get):
     mock_get.return_value = _mock_requests_get(RESPOSTA_VIACEP_VALIDA)
     resultado = buscar_endereco("01310-100")
@@ -84,14 +82,14 @@ def test_buscar_endereco_retorna_campos_corretos(mock_get):
     assert "01310" in resultado["cep"]
 
 
-@patch("stockguard.suppliers.requests.get")
+@patch("requests.get")
 def test_buscar_endereco_cep_nao_encontrado(mock_get):
     mock_get.return_value = _mock_requests_get(RESPOSTA_CEP_NAO_ENCONTRADO)
     with pytest.raises(CEPNotFoundError, match="não encontrado"):
         buscar_endereco("00000000")
 
 
-@patch("stockguard.suppliers.requests.get")
+@patch("requests.get")
 def test_buscar_endereco_sem_complemento(mock_get):
     resposta = {**RESPOSTA_VIACEP_VALIDA, "complemento": ""}
     mock_get.return_value = _mock_requests_get(resposta)
@@ -99,15 +97,14 @@ def test_buscar_endereco_sem_complemento(mock_get):
     assert resultado["complemento"] == ""
 
 
-@patch("stockguard.suppliers.requests.get")
+@patch("requests.get")
 def test_buscar_endereco_erro_de_conexao(mock_get):
     from requests.exceptions import RequestException
+
     mock_get.side_effect = RequestException("Network unreachable")
     with pytest.raises(APIConnectionError):
         buscar_endereco("01310100")
 
-
-# ─── Testes de formatar_endereco ─────────────────────────────────────────────
 
 def test_formatar_endereco_completo():
     endereco = {
@@ -125,9 +122,7 @@ def test_formatar_endereco_completo():
     assert "01310-100" in resultado
 
 
-# ─── Testes de adicionar_fornecedor (mock + arquivo temporário) ───────────────
-
-@patch("stockguard.suppliers.requests.get")
+@patch("requests.get")
 def test_adicionar_fornecedor_salva_arquivo(mock_get):
     mock_get.return_value = _mock_requests_get(RESPOSTA_VIACEP_VALIDA)
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
@@ -139,15 +134,13 @@ def test_adicionar_fornecedor_salva_arquivo(mock_get):
         )
         assert fornecedor["nome"] == "Papelaria Central"
         assert fornecedor["endereco"]["cidade"] == "São Paulo"
-        
+
         salvos = listar_fornecedores(caminho)
         assert len(salvos) == 1
         assert salvos[0]["nome"] == "Papelaria Central"
     finally:
         os.unlink(caminho)
 
-
-# ─── Teste de integração REAL (requer internet) ───────────────────────────────
 
 @pytest.mark.integration
 def test_viacep_real_cep_conhecido():
