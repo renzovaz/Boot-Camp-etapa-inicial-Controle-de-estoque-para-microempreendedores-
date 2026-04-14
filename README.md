@@ -1,5 +1,7 @@
 # StockGuard 🛡️
- 
+
+ [![CI](https://github.com/renzovaz/Boot-Camp-etapa-inicial-Controle-de-estoque-para-microempreendedores-/actions/workflows/ci.yml/badge.svg)](https://github.com/renzovaz/Boot-Camp-etapa-inicial-Controle-de-estoque-para-microempreendedores-/actions/workflows/ci.yml)
+
 > Controle de estoque para microempreendedores — automatiza baixas em tempo real, dispara alertas de estoque mínimo e gera métricas de giro de mercadorias.
     
 ## O Problema
