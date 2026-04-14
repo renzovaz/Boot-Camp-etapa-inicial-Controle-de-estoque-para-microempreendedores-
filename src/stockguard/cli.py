@@ -6,6 +6,7 @@ Uso: stockguard <comando> [opções]
 from __future__ import annotations
 
 import argparse
+from pydoc import cli
 import sys
 from pathlib import Path
 
@@ -224,6 +225,8 @@ def main(argv: list[str] | None = None) -> int:
 
     return 0
 
+from stockguard.cli_suppliers import supplier
+cli.add_command(supplier)
 
 if __name__ == "__main__":
     sys.exit(main())

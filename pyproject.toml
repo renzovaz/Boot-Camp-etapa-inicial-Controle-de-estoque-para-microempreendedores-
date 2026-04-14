@@ -1,28 +1,18 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
 [project]
 name = "stockguard"
-version = "1.0.0"
-description = "Controle de estoque para microempreendedores — automatiza baixas e alertas de estoque mínimo."
+version = "1.1.0"
+description = "Controle de estoque para microempreendedores — com integração ViaCEP"
+authors = [{ name = "Renzo Machado Alves Vaz", email = "eusourenzo@gmail.com" }]
 readme = "README.md"
-license = { text = "MIT" }
-requires-python = ">=3.9"
-authors = [{ name = "Seu Nome Aqui", email = "seuemail@exemplo.com" }]
-keywords = ["estoque", "inventário", "microempreendedor", "cli"]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Environment :: Console",
-    "Intended Audience :: End Users/Desktop",
-    "Topic :: Office/Business :: Financial :: Accounting",
+license = { text = "GPL-3.0" }
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
 ]
-
-dependencies = []
 
 [project.optional-dependencies]
 dev = [
@@ -30,51 +20,33 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.4",
 ]
+web = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.0",
+]
 
 [project.scripts]
-stockguard = "stockguard.cli:main"
-
-[project.urls]
-Homepage = "https://github.com/SEU_USUARIO/stockguard"
-Repository = "https://github.com/SEU_USUARIO/stockguard"
-Issues = "https://github.com/SEU_USUARIO/stockguard/issues"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-# ─── Ruff (linting + formatação) ──────────────────────────────────────────────
-
-[tool.ruff]
-target-version = "py310"
-line-length = 100
-src = ["src", "tests"]
-
-[tool.ruff.lint]
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade
-    "ARG", # flake8-unused-arguments
-    "SIM", # flake8-simplify
-]
-ignore = ["E501"]  # line-too-long tratado pelo formatter
-
-[tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG"]
-
-# ─── Pytest ───────────────────────────────────────────────────────────────────
+stockguard = "stockguard.cli:cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+markers = [
+    "integration: testes que fazem requisições reais à API ViaCEP (requer internet)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
 
 [tool.coverage.run]
-source = ["src/stockguard"]
+source = ["src"]
 omit = ["tests/*"]
-
-[tool.coverage.report]
-show_missing = true
