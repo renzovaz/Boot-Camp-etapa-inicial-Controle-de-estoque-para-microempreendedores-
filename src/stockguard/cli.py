@@ -5,10 +5,12 @@ Uso: stockguard <comando> [opções]
 
 from __future__ import annotations
 
-import argparse
 import sys
 from pathlib import Path
 
+import click
+
+from stockguard.cli_suppliers import supplier
 from stockguard.inventory import (
     InvalidQuantityError,
     Inventory,
@@ -17,38 +19,112 @@ from stockguard.inventory import (
 )
 from stockguard.storage import Storage
 
-_RESET = "\033[0m"
-_BOLD = "\033[1m"
-_RED = "\033[31m"
-_GREEN = "\033[32m"
-_YELLOW = "\033[33m"
-_CYAN = "\033[36m"
+# ─── Cores / helpers ─────────────────────────────────────────────────────────
 
 
 def _ok(msg: str) -> None:
-    print(f"{_GREEN}✔{_RESET}  {msg}")
+    click.echo(click.style("✔", fg="green") + f"  {msg}")
 
 
 def _warn(msg: str) -> None:
-    print(f"{_YELLOW}⚠{_RESET}  {msg}")
+    click.echo(click.style("⚠", fg="yellow") + f"  {msg}")
 
 
 def _err(msg: str) -> None:
-    print(f"{_RED}✘{_RESET}  {msg}", file=sys.stderr)
+    click.echo(click.style("✘", fg="red") + f"  {msg}", err=True)
 
 
 def _header(title: str) -> None:
-    print(f"\n{_BOLD}{_CYAN}{title}{_RESET}")
-    print("─" * 50)
+    click.echo(f"\n{click.style(title, fg='cyan', bold=True)}")
+    click.echo("─" * 50)
 
 
-def cmd_add(args: argparse.Namespace, inv: Inventory) -> None:
-    product = inv.add_product(
-        name=args.name,
-        quantity=args.quantity,
-        min_stock=args.min_stock,
-        unit_price=args.price,
-    )
+# ─── Contexto compartilhado ──────────────────────────────────────────────────
+
+
+class AppContext:
+    """Carrega e expõe Inventory + Storage para todos os sub-comandos."""
+
+    def __init__(self, data: Path | None) -> None:
+        self.storage = Storage(filepath=data) if data else Storage()
+        try:
+            self.inv: Inventory = self.storage.load()
+        except Exception as exc:
+            _err(f"Erro ao carregar dados: {exc}")
+            sys.exit(1)
+
+    def save(self) -> None:
+        try:
+            self.storage.save(self.inv)
+        except Exception as exc:
+            _err(f"Erro ao salvar dados: {exc}")
+            sys.exit(1)
+
+
+pass_ctx = click.make_pass_decorator(AppContext)
+
+
+# ─── Grupo principal ─────────────────────────────────────────────────────────
+
+
+@click.group(
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.option(
+    "--data",
+    metavar="ARQUIVO",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Caminho alternativo para o arquivo de dados (padrão: ~/.stockguard/inventory.json).",
+)
+@click.version_option(package_name="stockguard", prog_name="stockguard")
+@click.pass_context
+def cli(ctx: click.Context, data: Path | None) -> None:
+    """StockGuard — Controle de estoque para microempreendedores.
+
+    Automatiza baixas, emite alertas de estoque mínimo e gera métricas
+    de giro de mercadorias.
+    """
+    ctx.obj = AppContext(data)
+    ctx.call_on_close(ctx.obj.save)
+
+
+# ─── Comandos ────────────────────────────────────────────────────────────────
+
+
+@cli.command("add")
+@click.argument("nome")
+@click.argument("quantidade", type=int)
+@click.option(
+    "--min-stock",
+    "-m",
+    default=5,
+    show_default=True,
+    metavar="MIN",
+    help="Estoque mínimo para alerta.",
+)
+@click.option(
+    "--price", "-p", default=0.0, show_default=True, metavar="PRECO", help="Preço unitário em R$."
+)
+@pass_ctx
+def cmd_add(app: AppContext, nome: str, quantidade: int, min_stock: int, price: float) -> None:
+    """Cadastra ou repõe produto no estoque.
+
+    Exemplo:
+
+        stockguard add "Caneta Azul" 50 --min-stock 10 --price 1.50
+    """
+    try:
+        product = app.inv.add_product(
+            name=nome,
+            quantity=quantidade,
+            min_stock=min_stock,
+            unit_price=price,
+        )
+    except (InvalidQuantityError, InventoryError) as exc:
+        _err(str(exc))
+        sys.exit(1)
+
     _ok(
         f"Produto '{product.name}' salvo — "
         f"estoque: {product.quantity} unidades "
@@ -58,30 +134,56 @@ def cmd_add(args: argparse.Namespace, inv: Inventory) -> None:
         _warn("Estoque já está no nível mínimo ou abaixo!")
 
 
-def cmd_sell(args: argparse.Namespace, inv: Inventory) -> None:
-    product = inv.sell_product(name=args.name, quantity=args.quantity)
-    total = args.quantity * product.unit_price
+@cli.command("sell")
+@click.argument("nome")
+@click.argument("quantidade", type=int)
+@pass_ctx
+def cmd_sell(app: AppContext, nome: str, quantidade: int) -> None:
+    """Registra venda e dá baixa no estoque.
+
+    Exemplo:
+
+        stockguard sell "Caneta Azul" 5
+    """
+    try:
+        product = app.inv.sell_product(name=nome, quantity=quantidade)
+    except (InvalidQuantityError, ProductNotFoundError) as exc:
+        _err(str(exc))
+        sys.exit(1)
+    except InventoryError as exc:
+        _err(f"Erro de estoque: {exc}")
+        sys.exit(1)
+
+    total = quantidade * product.unit_price
     _ok(
-        f"Venda registrada: {args.quantity}× '{product.name}' "
+        f"Venda registrada: {quantidade}× '{product.name}' "
         f"= R$ {total:.2f}. Saldo: {product.quantity} unidades."
     )
     if product.quantity <= product.min_stock:
         _warn(f"ALERTA: '{product.name}' atingiu o estoque mínimo ({product.min_stock})!")
 
 
-def cmd_list(args: argparse.Namespace, inv: Inventory) -> None:  # noqa: ARG001
-    products = inv.list_products()
+@cli.command("list")
+@pass_ctx
+def cmd_list(app: AppContext) -> None:
+    """Lista todos os produtos em estoque."""
+    products = app.inv.list_products()
     if not products:
-        print("Nenhum produto cadastrado.")
+        click.echo("Nenhum produto cadastrado.")
         return
 
     _header("Estoque atual")
     fmt = "{:<28} {:>8} {:>8} {:>10}  {}"
-    print(fmt.format("Produto", "Qtd", "Mín", "Preço", "Status"))
-    print("─" * 70)
+    click.echo(fmt.format("Produto", "Qtd", "Mín", "Preço", "Status"))
+    click.echo("─" * 70)
+
     for p in products:
-        status = f"{_RED}BAIXO{_RESET}" if p.quantity <= p.min_stock else f"{_GREEN}OK{_RESET}"
-        print(
+        if p.quantity <= p.min_stock:
+            status = click.style("BAIXO", fg="red")
+        else:
+            status = click.style("OK", fg="green")
+
+        click.echo(
             fmt.format(
                 p.name[:28],
                 p.quantity,
@@ -90,33 +192,42 @@ def cmd_list(args: argparse.Namespace, inv: Inventory) -> None:  # noqa: ARG001
                 status,
             )
         )
-    print(f"\nTotal: {len(products)} produto(s)")
+
+    click.echo(f"\nTotal: {len(products)} produto(s)")
 
 
-def cmd_alerts(args: argparse.Namespace, inv: Inventory) -> None:  # noqa: ARG001
-    low = inv.low_stock_alerts()
+@cli.command("alerts")
+@pass_ctx
+def cmd_alerts(app: AppContext) -> None:
+    """Exibe produtos abaixo do estoque mínimo."""
+    low = app.inv.low_stock_alerts()
     if not low:
         _ok("Nenhum produto abaixo do estoque mínimo.")
         return
 
     _header(f"⚠  Alertas de estoque mínimo ({len(low)} produto(s))")
     for p in low:
-        print(f"  {_RED}•{_RESET} {p.name}: {p.quantity} unid. (mín: {p.min_stock})")
+        bullet = click.style("•", fg="red")
+        click.echo(f"  {bullet} {p.name}: {p.quantity} unid. (mín: {p.min_stock})")
 
 
-def cmd_report(args: argparse.Namespace, inv: Inventory) -> None:  # noqa: ARG001
-    report = inv.turnover_report()
+@cli.command("report")
+@pass_ctx
+def cmd_report(app: AppContext) -> None:
+    """Gera relatório de giro de mercadorias."""
+    report = app.inv.turnover_report()
     if not report:
-        print("Nenhum dado para gerar relatório.")
+        click.echo("Nenhum dado para gerar relatório.")
         return
 
     _header("Relatório de giro de mercadorias")
     fmt = "{:<28} {:>8} {:>10} {:>14}"
-    print(fmt.format("Produto", "Vendidos", "Val. vendido", "Estoque atual"))
-    print("─" * 68)
+    click.echo(fmt.format("Produto", "Vendidos", "Val. vendido", "Estoque atual"))
+    click.echo("─" * 68)
+
     for r in report:
-        alert = f" {_RED}⚠{_RESET}" if r["below_min"] else ""
-        print(
+        alert = f" {click.style('⚠', fg='red')}" if r["below_min"] else ""
+        click.echo(
             fmt.format(
                 r["name"][:28],
                 r["total_sold"],
@@ -127,103 +238,35 @@ def cmd_report(args: argparse.Namespace, inv: Inventory) -> None:  # noqa: ARG00
         )
 
 
-def cmd_remove(args: argparse.Namespace, inv: Inventory) -> None:
-    product = inv.remove_product(name=args.name)
+@cli.command("remove")
+@click.argument("nome")
+@click.confirmation_option(
+    "--yes",
+    prompt="Tem certeza que deseja remover este produto?",
+)
+@pass_ctx
+def cmd_remove(app: AppContext, nome: str) -> None:
+    """Remove um produto do inventário.
+
+    Exemplo:
+
+        stockguard remove "Caneta Azul"
+    """
+    try:
+        product = app.inv.remove_product(name=nome)
+    except ProductNotFoundError as exc:
+        _err(str(exc))
+        sys.exit(1)
+
     _ok(f"Produto '{product.name}' removido do inventário.")
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="stockguard",
-        description=(
-            "StockGuard — Controle de estoque para microempreendedores.\n"
-            "Automatiza baixas, emite alertas de estoque mínimo e gera "
-            "métricas de giro de mercadorias."
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "--data",
-        metavar="ARQUIVO",
-        type=Path,
-        help="Caminho alternativo para o arquivo de dados (padrão: ~/.stockguard/inventory.json)",
-    )
+# ─── Sub-grupo de fornecedores ────────────────────────────────────────────────
 
-    sub = parser.add_subparsers(dest="command", title="Comandos disponíveis")
-    sub.required = True
-
-    # add
-    p_add = sub.add_parser("add", help="Cadastra ou repõe produto no estoque")
-    p_add.add_argument("name", metavar="NOME", help="Nome do produto")
-    p_add.add_argument("quantity", metavar="QTD", type=int, help="Quantidade a adicionar")
-    p_add.add_argument(
-        "--min-stock", "-m", metavar="MIN", type=int, default=5,
-        help="Estoque mínimo para alerta (padrão: 5)"
-    )
-    p_add.add_argument(
-        "--price", "-p", metavar="PRECO", type=float, default=0.0,
-        help="Preço unitário em R$ (padrão: 0.00)"
-    )
-
-    # sell
-    p_sell = sub.add_parser("sell", help="Registra venda (baixa de estoque)")
-    p_sell.add_argument("name", metavar="NOME", help="Nome do produto")
-    p_sell.add_argument("quantity", metavar="QTD", type=int, help="Quantidade vendida")
-
-    # list
-    sub.add_parser("list", help="Lista todos os produtos em estoque")
-
-    # alerts
-    sub.add_parser("alerts", help="Exibe produtos abaixo do estoque mínimo")
-
-    # report
-    sub.add_parser("report", help="Gera relatório de giro de mercadorias")
-
-    # remove
-    p_remove = sub.add_parser("remove", help="Remove produto do inventário")
-    p_remove.add_argument("name", metavar="NOME", help="Nome do produto a remover")
-
-    return parser
+cli.add_command(supplier)
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
-
-    storage = Storage(filepath=args.data) if args.data else Storage()
-
-    try:
-        inv = storage.load()
-    except Exception as exc:
-        _err(f"Erro ao carregar dados: {exc}")
-        return 1
-
-    dispatch = {
-        "add": cmd_add,
-        "sell": cmd_sell,
-        "list": cmd_list,
-        "alerts": cmd_alerts,
-        "report": cmd_report,
-        "remove": cmd_remove,
-    }
-
-    try:
-        dispatch[args.command](args, inv)
-    except (InvalidQuantityError, ProductNotFoundError) as exc:
-        _err(str(exc))
-        return 1
-    except InventoryError as exc:
-        _err(f"Erro de estoque: {exc}")
-        return 1
-
-    try:
-        storage.save(inv)
-    except Exception as exc:
-        _err(f"Erro ao salvar dados: {exc}")
-        return 1
-
-    return 0
-
+# ─── Entrypoint ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    sys.exit(main())
+    cli()
