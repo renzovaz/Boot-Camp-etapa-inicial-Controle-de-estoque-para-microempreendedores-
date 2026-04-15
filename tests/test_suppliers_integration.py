@@ -153,4 +153,3 @@ def test_viacep_real_cep_conhecido():
 def test_viacep_real_cep_inexistente():
     with pytest.raises(CEPNotFoundError):
         buscar_endereco("00000000")
-
