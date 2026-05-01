@@ -27,7 +27,6 @@ from stockguard.suppliers import (
     listar_fornecedores,
 )
 
-
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 
 RESPOSTA_VIACEP_VALIDA = {
@@ -51,6 +50,7 @@ def _mock_urlopen(payload: dict):
 
 
 # ─── Validação de CEP (sem rede) ─────────────────────────────────────────────
+
 
 def test_limpar_cep_com_traco():
     assert _limpar_cep("01310-100") == "01310100"
@@ -80,6 +80,7 @@ def test_cep_invalido_longo():
 
 
 # ─── buscar_endereco com mock ─────────────────────────────────────────────────
+
 
 @patch("stockguard.suppliers.urlopen")
 def test_buscar_endereco_retorna_campos_corretos(mock_urlopen):
@@ -114,12 +115,14 @@ def test_buscar_endereco_sem_complemento(mock_urlopen):
 def test_buscar_endereco_erro_de_conexao(mock_urlopen):
     """Simula falha de rede — deve lançar APIConnectionError."""
     from urllib.error import URLError
+
     mock_urlopen.side_effect = URLError("Network unreachable")
     with pytest.raises(APIConnectionError):
         buscar_endereco("01310100")
 
 
 # ─── formatar_endereco ────────────────────────────────────────────────────────
+
 
 def test_formatar_endereco_completo():
     endereco = {
@@ -152,6 +155,7 @@ def test_formatar_endereco_sem_complemento():
 
 
 # ─── adicionar_fornecedor com mock + arquivo temporário ──────────────────────
+
 
 @patch("stockguard.suppliers.urlopen")
 def test_adicionar_fornecedor_salva_arquivo(mock_urlopen):
@@ -199,6 +203,7 @@ def test_adicionar_fornecedor_cep_invalido():
 
 
 # ─── Testes de integração REAL (requer internet) ──────────────────────────────
+
 
 @pytest.mark.integration
 def test_viacep_real_cep_conhecido():
