@@ -15,6 +15,9 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
 
+    env:
+      PYTHONPATH: src
+
     steps:
       - name: Checkout do repositório
         uses: actions/checkout@v4
@@ -41,7 +44,6 @@ jobs:
       - name: Testes de integração com mock do ViaCEP
         run: pytest tests/test_suppliers_integration.py -v
 
-      # Testes REAIS com ViaCEP — somente na branch main, não quebra o CI
       - name: Testes de integração real com ViaCEP
         if: github.ref == 'refs/heads/main'
         run: pytest -m integration tests/test_suppliers_integration.py -v
