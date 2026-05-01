@@ -17,9 +17,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from stockguard.suppliers import (
+    APIConnectionError,
     CEPInvalidError,
     CEPNotFoundError,
-    APIConnectionError,
     _limpar_cep,
     adicionar_fornecedor,
     buscar_endereco,
