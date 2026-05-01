@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
+build-backend = "setuptools.backends.legacy:build"
 
 [project]
 name = "stockguard"
@@ -9,7 +9,7 @@ description = "Controle de estoque para microempreendedores — com integração
 authors = [{ name = "Renzo Machado Alves Vaz", email = "eusourenzo@gmail.com" }]
 readme = "README.md"
 license = { text = "GPL-3.0" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "click>=8.0",
 ]
@@ -29,6 +29,9 @@ web = [
 [project.scripts]
 stockguard = "stockguard.cli:cli"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
@@ -39,6 +42,8 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+# web_app.py usa imports opcionais (fastapi) que não estão no [dev] — excluir do lint do CI
+exclude = ["web_app.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]

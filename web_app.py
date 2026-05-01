@@ -1,33 +1,26 @@
 """
 web_app.py — Interface web do StockGuard para deploy no Render.
 
-Expõe os dados do StockGuard via uma API REST simples (FastAPI),
-permitindo acesso público ao inventário e aos fornecedores por link.
+Versão corrigida: não depende de Inventory/Storage — lê o arquivo JSON
+diretamente, compatível com qualquer estrutura do projeto.
 
 Endpoints:
   GET  /                    — Health check / info do sistema
   GET  /inventory           — Lista todos os produtos em estoque
   GET  /inventory/alerts    — Produtos abaixo do estoque mínimo
-  GET  /inventory/report    — Relatório de giro (valor financeiro)
+  GET  /inventory/report    — Relatório financeiro do estoque
   GET  /suppliers           — Lista todos os fornecedores cadastrados
   POST /suppliers           — Cadastra fornecedor com busca de CEP (ViaCEP)
 """
 
 from __future__ import annotations
 
+import json
 import os
 
-try:
-    from fastapi import FastAPI, HTTPException
-    from fastapi.responses import JSONResponse
-    from pydantic import BaseModel
-except ImportError as exc:
-    raise ImportError(
-        "FastAPI não instalado. Execute: pip install fastapi uvicorn"
-    ) from exc
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
-from stockguard.inventory import Inventory
-from stockguard.storage import JSONStorage
 from stockguard.suppliers import (
     adicionar_fornecedor,
     listar_fornecedores,
@@ -42,7 +35,7 @@ app = FastAPI(
     version="1.1.0",
 )
 
-# ─── Instância do inventário ─────────────────────────────────────────────────
+# ─── Caminhos dos arquivos de dados ──────────────────────────────────────────
 
 _DATA_FILE = os.environ.get(
     "STOCKGUARD_DATA",
@@ -53,8 +46,17 @@ _SUPPLIERS_FILE = os.environ.get(
     os.path.join(os.path.expanduser("~"), ".stockguard", "suppliers.json"),
 )
 
-storage = JSONStorage(_DATA_FILE)
-inventory = Inventory(storage)
+
+def _ler_inventario() -> list[dict]:
+    """Lê o inventário direto do arquivo JSON, sem depender de classes internas."""
+    if not os.path.exists(_DATA_FILE):
+        return []
+    with open(_DATA_FILE, "r", encoding="utf-8") as f:
+        dados = json.load(f)
+    # Suporta tanto {"products": [...]} quanto {"produtos": [...]} quanto lista direta
+    if isinstance(dados, list):
+        return dados
+    return dados.get("products", dados.get("produtos", []))
 
 
 # ─── Modelos Pydantic ────────────────────────────────────────────────────────
@@ -81,32 +83,40 @@ def root():
 @app.get("/inventory", tags=["Estoque"])
 def get_inventory():
     """Lista todos os produtos em estoque."""
-    produtos = inventory.list_products()
+    produtos = _ler_inventario()
     return {"total": len(produtos), "produtos": produtos}
 
 
 @app.get("/inventory/alerts", tags=["Estoque"])
 def get_alerts():
     """Retorna produtos com estoque abaixo do mínimo configurado."""
-    todos = inventory.list_products()
-    alertas = [p for p in todos if p["quantity"] < p.get("min_stock", 0)]
+    todos = _ler_inventario()
+    # Suporta tanto "quantity"/"min_stock" quanto "quantidade"/"estoque_minimo"
+    alertas = [
+        p for p in todos
+        if p.get("quantity", p.get("quantidade", 0))
+        < p.get("min_stock", p.get("estoque_minimo", 0))
+    ]
     return {"total_alertas": len(alertas), "alertas": alertas}
 
 
 @app.get("/inventory/report", tags=["Estoque"])
 def get_report():
     """Relatório de giro de mercadorias com valor financeiro."""
-    produtos = inventory.list_products()
-    relatorio = [
-        {
-            "produto": p["name"],
-            "vendidos": p.get("sold", 0),
-            "valor_vendido": round(p.get("sold", 0) * p.get("price", 0), 2),
-            "estoque_atual": p["quantity"],
-            "valor_estoque": round(p["quantity"] * p.get("price", 0), 2),
-        }
-        for p in produtos
-    ]
+    produtos = _ler_inventario()
+    relatorio = []
+    for p in produtos:
+        nome = p.get("name", p.get("nome", ""))
+        qtd = p.get("quantity", p.get("quantidade", 0))
+        preco = p.get("price", p.get("preco", 0))
+        vendidos = p.get("sold", p.get("vendidos", 0))
+        relatorio.append({
+            "produto": nome,
+            "vendidos": vendidos,
+            "valor_vendido": round(vendidos * preco, 2),
+            "estoque_atual": qtd,
+            "valor_estoque": round(qtd * preco, 2),
+        })
     valor_total = sum(r["valor_estoque"] for r in relatorio)
     return {
         "valor_total_estoque": round(valor_total, 2),
@@ -125,8 +135,7 @@ def get_suppliers():
 def create_supplier(body: SupplierIn):
     """
     Cadastra um fornecedor com busca automática de endereço via ViaCEP.
-
-    O campo `cep` pode ser informado com ou sem traço (ex: 01310-100 ou 01310100).
+    O campo cep pode ser com ou sem traço (ex: 01310-100 ou 01310100).
     """
     try:
         fornecedor = adicionar_fornecedor(

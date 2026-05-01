@@ -24,22 +24,25 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Instalar dependências
+      - name: Instalar dependências de desenvolvimento
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Lint com Ruff
+      - name: Lint com Ruff (src e tests)
         run: ruff check src/ tests/
 
       - name: Verificar formatação com Ruff
         run: ruff format --check src/ tests/
 
-      - name: Testes unitários e de integração (mock)
-        run: pytest --cov=src --cov-report=term-missing -v
+      - name: Testes unitários e de integração (mock — sem internet)
+        run: pytest --ignore=tests/test_suppliers_integration.py -v --cov=src --cov-report=term-missing
 
-      # Testes de integração REAL (apenas na branch main após merge)
+      - name: Testes de integração com mock do ViaCEP
+        run: pytest tests/test_suppliers_integration.py -v
+
+      # Testes REAIS com ViaCEP — somente na branch main, não quebra o CI
       - name: Testes de integração real com ViaCEP
         if: github.ref == 'refs/heads/main'
         run: pytest -m integration tests/test_suppliers_integration.py -v
-        continue-on-error: true   # Não quebra o CI se a API estiver instável
+        continue-on-error: true
