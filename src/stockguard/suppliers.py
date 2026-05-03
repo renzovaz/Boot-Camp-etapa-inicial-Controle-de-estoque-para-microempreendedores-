@@ -16,12 +16,11 @@ from urllib.request import urlopen
 
 VIACEP_URL = "https://viacep.com.br/ws/{cep}/json/"
 
-_SUPPLIERS_FILE = os.path.join(
-    os.path.expanduser("~"), ".stockguard", "suppliers.json"
-)
+_SUPPLIERS_FILE = os.path.join(os.path.expanduser("~"), ".stockguard", "suppliers.json")
 
 
 # ─── Exceções ────────────────────────────────────────────────────────────────
+
 
 class CEPNotFoundError(Exception):
     """CEP não encontrado na base ViaCEP."""
@@ -37,13 +36,12 @@ class APIConnectionError(OSError):
 
 # ─── Validação e consulta ────────────────────────────────────────────────────
 
+
 def _limpar_cep(cep: str) -> str:
     """Remove traços e espaços e valida o formato do CEP."""
     cep = cep.strip().replace("-", "").replace(" ", "")
     if not cep.isdigit() or len(cep) != 8:
-        raise CEPInvalidError(
-            f"CEP '{cep}' inválido. Informe 8 dígitos numéricos (ex: 01310-100)."
-        )
+        raise CEPInvalidError(f"CEP '{cep}' inválido. Informe 8 dígitos numéricos (ex: 01310-100).")
     return cep
 
 
@@ -70,9 +68,7 @@ def buscar_endereco(cep: str, timeout: int = 5) -> dict:
         with urlopen(url, timeout=timeout) as response:
             data = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
-        raise APIConnectionError(
-            f"Erro HTTP ao consultar ViaCEP: {exc.code} {exc.reason}"
-        ) from exc
+        raise APIConnectionError(f"Erro HTTP ao consultar ViaCEP: {exc.code} {exc.reason}") from exc
     except URLError as exc:
         raise APIConnectionError(
             f"Não foi possível conectar ao ViaCEP. Verifique sua internet. ({exc.reason})"
@@ -104,6 +100,7 @@ def formatar_endereco(endereco: dict) -> str:
 
 # ─── Persistência ────────────────────────────────────────────────────────────
 
+
 def _carregar_fornecedores(caminho: str = _SUPPLIERS_FILE) -> list[dict]:
     os.makedirs(os.path.dirname(caminho), exist_ok=True)
     if not os.path.exists(caminho):
@@ -112,9 +109,7 @@ def _carregar_fornecedores(caminho: str = _SUPPLIERS_FILE) -> list[dict]:
         return json.load(f)
 
 
-def _salvar_fornecedores(
-    fornecedores: list[dict], caminho: str = _SUPPLIERS_FILE
-) -> None:
+def _salvar_fornecedores(fornecedores: list[dict], caminho: str = _SUPPLIERS_FILE) -> None:
     os.makedirs(os.path.dirname(caminho), exist_ok=True)
     with open(caminho, "w", encoding="utf-8") as f:
         json.dump(fornecedores, f, ensure_ascii=False, indent=2)
