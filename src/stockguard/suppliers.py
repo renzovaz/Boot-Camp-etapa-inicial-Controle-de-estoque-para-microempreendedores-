@@ -108,7 +108,7 @@ def _carregar_fornecedores(caminho: str = _SUPPLIERS_FILE) -> list[dict]:
     os.makedirs(os.path.dirname(caminho), exist_ok=True)
     if not os.path.exists(caminho):
         return []
-    with open(caminho, "r", encoding="utf-8") as f:
+    with open(caminho, encoding="utf-8") as f:
         return json.load(f)
 
 
