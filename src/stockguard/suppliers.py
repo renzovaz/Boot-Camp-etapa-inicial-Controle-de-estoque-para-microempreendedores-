@@ -106,7 +106,10 @@ def _carregar_fornecedores(caminho: str = _SUPPLIERS_FILE) -> list[dict]:
     if not os.path.exists(caminho):
         return []
     with open(caminho, encoding="utf-8") as f:
-        return json.load(f)
+        content = f.read().strip()
+    if not content:
+        return []
+    return json.loads(content)
 
 
 def _salvar_fornecedores(fornecedores: list[dict], caminho: str = _SUPPLIERS_FILE) -> None:
