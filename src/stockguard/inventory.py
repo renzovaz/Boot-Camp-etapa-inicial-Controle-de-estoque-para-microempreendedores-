@@ -117,8 +117,7 @@ class Inventory:
         product = self._products[key]
         if product.quantity < quantity:
             raise InsufficientStockError(
-                f"Estoque insuficiente. Disponível: {product.quantity}, "
-                f"solicitado: {quantity}."
+                f"Estoque insuficiente. Disponível: {product.quantity}, solicitado: {quantity}."
             )
 
         product.quantity -= quantity

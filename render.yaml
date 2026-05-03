@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: stockguard
+    runtime: python
+    buildCommand: pip install -e ".[web]"
+    startCommand: uvicorn web_app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: STOCKGUARD_DATA
+        value: /tmp/stockguard/inventory.json
+      - key: STOCKGUARD_SUPPLIERS
+        value: /tmp/stockguard/suppliers.json
+    healthCheckPath: /

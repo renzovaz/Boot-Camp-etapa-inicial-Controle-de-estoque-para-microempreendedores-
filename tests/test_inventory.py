@@ -14,10 +14,12 @@ from stockguard.inventory import (
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture()
 def inv() -> Inventory:
     """Inventário vazio para cada teste."""
     return Inventory()
+
 
 @pytest.fixture()
 def inv_with_products() -> Inventory:
@@ -28,7 +30,9 @@ def inv_with_products() -> Inventory:
     inventory.add_product("Borracha", quantity=8, min_stock=15, unit_price=0.80)
     return inventory
 
+
 # ─── Testes: add_product ──────────────────────────────────────────────────────
+
 
 class TestAddProduct:
     def test_add_new_product_success(self, inv: Inventory) -> None:
@@ -72,7 +76,9 @@ class TestAddProduct:
         product = inv.add_product("Caneta", quantity=0, min_stock=5, unit_price=2.00)
         assert product.quantity == 0
 
+
 # ─── Testes: sell_product ────────────────────────────────────────────────────
+
 
 class TestSellProduct:
     def test_sell_success(self, inv_with_products: Inventory) -> None:
@@ -114,7 +120,9 @@ class TestSellProduct:
         product = inv.sell_product("Produto", quantity=5)
         assert product.quantity == 0
 
+
 # ─── Testes: alertas e relatório ─────────────────────────────────────────────
+
 
 class TestAlertsAndReport:
     def test_low_stock_alerts_returns_below_min(self, inv_with_products: Inventory) -> None:
@@ -143,7 +151,9 @@ class TestAlertsAndReport:
         report = inv.turnover_report()
         assert report[0]["total_value_sold"] == pytest.approx(70.00)
 
+
 # ─── Testes: serialização ────────────────────────────────────────────────────
+
 
 class TestSerialization:
     def test_roundtrip_to_from_dict(self, inv_with_products: Inventory) -> None:
